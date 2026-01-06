@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Photo Gallery</title>
+
+  <style>
+    :root{
+      --bg: #0b0c10;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.10);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.65);
+      --line: rgba(255,255,255,.10);
+      --shadow: 0 18px 50px rgba(0,0,0,.55);
+      --radius: 16px;
+      --gap: 14px;
+      --max: 1200px;
+    }
+
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg: #f6f7fb;
+        --card: rgba(0,0,0,.05);
+        --card2: rgba(0,0,0,.08);
+        --text: rgba(0,0,0,.88);
+        --muted: rgba(0,0,0,.55);
+        --line: rgba(0,0,0,.10);
+        --shadow: 0 18px 50px rgba(0,0,0,.18);
+      }
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 700px at 18% 10%, rgba(120,140,255,.18), transparent 60%),
+                  radial-gradient(900px 600px at 85% 20%, rgba(120,255,200,.14), transparent 55%),
+                  linear-gradient(180deg, var(--bg), var(--bg));
+      color: var(--text);
+    }
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 22px 16px 36px;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    h1{
+      margin:0;
+      font-size: 20px;
+      letter-spacing: .2px;
+    }
+    .sub{
+      margin:0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .controls{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      border-radius: 999px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.18);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .pill input{
+      all: unset;
+      width: 210px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .pill input::placeholder{ color: var(--muted); }
+
+    .btn{
+      appearance:none;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-size: 13px;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    .btn:hover{ border-color: rgba(255,255,255,.22); }
+    .btn:active{ transform: scale(.98); }
+
+    .meta{
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:center;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--gap);
+      margin-top: 14px;
+    }
+    @media (min-width: 720px){
+      .grid{ grid-template-columns: repeat(3, 1fr); }
+      h1{ font-size: 22px; }
+    }
+    @media (min-width: 980px){
+      .grid{ grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .card{
+      position:relative;
+      border-radius: var(--radius);
+      overflow:hidden;
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      cursor: zoom-in;
+      transform: translateZ(0);
+      transition: transform .18s ease, border-color .18s ease;
+      aspect-ratio: 16 / 10;
+    }
+    .card:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.20);
+    }
+
+    .card img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+      filter: saturate(1.03) contrast(1.02);
+      transform: scale(1.01);
+      transition: transform .25s ease;
+    }
+    .card:hover img{ transform: scale(1.05); }
+
+    .badge{
+      position:absolute;
+      left: 10px;
+      bottom: 10px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(0,0,0,.42);
+      color: rgba(255,255,255,.92);
+      border: 1px solid rgba(255,255,255,.18);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      pointer-events:none;
+      max-width: calc(100% - 20px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Lightbox */
+    .lightbox{
+      position: fixed;
+      inset: 0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 18px;
+      z-index: 50;
+    }
+    .lightbox.open{ display:flex; }
+
+    .viewer{
+      width: min(1100px, 100%);
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(10,10,14,.55);
+      box-shadow: 0 28px 90px rgba(0,0,0,.65);
+    }
+
+    .viewerTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+    }
+    .viewerTop .left{
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .viewerTop .name{
+      font-size: 13px;
+      color: rgba(255,255,255,.92);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .viewerTop .hint{
+      font-size: 12px;
+      color: rgba(255,255,255,.65);
+    }
+    .viewerTop .actions{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-shrink: 0;
+    }
+    .iconBtn{
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.25);
+      color: rgba(255,255,255,.92);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      transition: transform .08s ease, background .2s ease;
+      user-select:none;
+    }
+    .iconBtn:hover{ background: rgba(0,0,0,.35); }
+    .iconBtn:active{ transform: scale(.98); }
+
+    .viewerImgWrap{
+      background: rgba(0,0,0,.35);
+    }
+    .viewerImg{
+      width:100%;
+      height: min(78vh, 720px);
+      object-fit: contain;
+      display:block;
+      background: rgba(0,0,0,.18);
+    }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      color: var(--text);
+      font-size: 13px;
+      box-shadow: 0 14px 46px rgba(0,0,0,.35);
+      display:none;
+      z-index: 60;
+      max-width: calc(100% - 28px);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .toast.show{ display:block; }
+
+    .empty{
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      color: var(--muted);
+      display:none;
+    }
+
+    footer{
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{ transition:none !important; scroll-behavior:auto !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1 id="pageTitle">Gallery</h1>
+        <p class="sub">Click a photo to view. Use ←/→ to navigate, Esc to close. On mobile, swipe left/right.</p>
+        <div class="meta">
+          <span id="status">Loading…</span>
+          <span>•</span>
+          <span id="count">0 photos</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="pill" title="Filter by filename">
+          🔎
+          <input id="filter" placeholder="Filter…" autocomplete="off" />
+        </div>
+        <button class="btn" id="scrollTopBtn" type="button">Top</button>
+      </div>
+    </header>
+
+    <div id="grid" class="grid" aria-live="polite"></div>
+    <div id="empty" class="empty">No photos match your filter.</div>
+
+    <footer></footer>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <div class="viewer">
+      <div class="viewerTop">
+        <div class="left">
+          <div class="name" id="viewerName">—</div>
+          <div class="hint" id="viewerHint">—</div>
+        </div>
+        <div class="actions">
+          <button class="iconBtn" id="prevBtn" title="Previous (←)" aria-label="Previous">←</button>
+          <button class="iconBtn" id="nextBtn" title="Next (→)" aria-label="Next">→</button>
+          <button class="iconBtn" id="openBtn" title="Open image in new tab" aria-label="Open in new tab">↗</button>
+          <button class="iconBtn" id="closeBtn" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="viewerImgWrap">
+        <img id="viewerImg" class="viewerImg" alt="" />
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    /***********************
+     * CONFIG (edit these) *
+     ***********************/
+    const GALLERY_TITLE = "Cloverdale Library"; // <-- change this
+
+    // Put your real filenames here (in /Images/)
+    // Example:
+    // const IMAGE_FILES = ["Beach Sunset.jpg", "Family-Reunion.jpg", "IMG_4821.jpg"];
+    const IMAGE_FILES = [
+      "Cloverdale 1.jpg",
+      "Cloverdale 2.jpg",
+      "Cloverdale 3.jpg",
+      "Cloverdale 4.jpg",
+      "Cloverdale 4_Heights.jpg",
+      "Cloverdale Top View.jpg",
+      "Cloverdale Top View_Heights.jpg"
+    ];
+
+    const CONFIG = {
+      folder: "Images" // folder name
+    };
+
+    // If true, badges show "Beach Sunset" instead of "Beach Sunset.jpg"
+    const HIDE_EXTENSION_IN_BADGE = false;
+
+    /***********************
+     * App logic (below)   *
+     ***********************/
+    const pageTitle = document.getElementById("pageTitle");
+    const grid = document.getElementById("grid");
+    const statusEl = document.getElementById("status");
+    const countEl = document.getElementById("count");
+    const filterEl = document.getElementById("filter");
+    const emptyEl = document.getElementById("empty");
+
+    const lightbox = document.getElementById("lightbox");
+    const viewerImg = document.getElementById("viewerImg");
+    const viewerName = document.getElementById("viewerName");
+    const viewerHint = document.getElementById("viewerHint");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const closeBtn = document.getElementById("closeBtn");
+    const openBtn = document.getElementById("openBtn");
+    const toastEl = document.getElementById("toast");
+
+    const scrollTopBtn = document.getElementById("scrollTopBtn");
+    scrollTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+    pageTitle.textContent = GALLERY_TITLE;
+
+    const photos = [];   // { path, filename, label }
+    let filtered = [];
+    let currentIndex = -1;
+
+    function showToast(msg){
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toastEl.classList.remove("show"), 1400);
+    }
+
+    function setStatus(text){ statusEl.textContent = text; }
+    function setCount(n){ countEl.textContent = `${n} photo${n === 1 ? "" : "s"}`; }
+
+    function toLabel(filename){
+      if (!HIDE_EXTENSION_IN_BADGE) return filename;
+      return filename.replace(/\.[^.]+$/, "");
+    }
+
+    function createCard(p){
+      const card = document.createElement("div");
+      card.className = "card";
+      card.tabIndex = 0;
+
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.alt = p.label;
+      img.src = p.path;
+
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.textContent = p.label;
+
+      card.appendChild(img);
+      card.appendChild(badge);
+
+      card.addEventListener("click", () => openLightboxByPath(p.path));
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLightboxByPath(p.path);
+        }
+      });
+
+      return card;
+    }
+
+    function render(){
+      grid.innerHTML = "";
+      const q = filterEl.value.trim().toLowerCase();
+
+      filtered = q
+        ? photos.filter(p => p.filename.toLowerCase().includes(q) || p.label.toLowerCase().includes(q))
+        : photos.slice();
+
+      for (const p of filtered){
+        grid.appendChild(createCard(p));
+      }
+
+      emptyEl.style.display = filtered.length ? "none" : "block";
+      setCount(filtered.length);
+    }
+
+    function openLightboxByPath(path){
+      const idx = filtered.findIndex(p => p.path === path);
+      if (idx === -1) return;
+      openLightbox(idx);
+    }
+
+    function openLightbox(idx){
+      currentIndex = idx;
+      const p = filtered[currentIndex];
+      viewerImg.src = p.path;
+      viewerImg.alt = p.label;
+      viewerName.textContent = p.filename;
+      viewerHint.textContent = `${currentIndex + 1} of ${filtered.length}`;
+      openBtn.onclick = () => window.open(p.path, "_blank", "noopener,noreferrer");
+
+      lightbox.classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox(){
+      lightbox.classList.remove("open");
+      document.body.style.overflow = "";
+      viewerImg.src = "";
+      currentIndex = -1;
+    }
+
+    function step(dir){
+      if (!filtered.length) return;
+      currentIndex = (currentIndex + dir + filtered.length) % filtered.length;
+      openLightbox(currentIndex);
+    }
+
+    // Lightbox controls
+    prevBtn.addEventListener("click", () => step(-1));
+    nextBtn.addEventListener("click", () => step( 1));
+    closeBtn.addEventListener("click", closeLightbox);
+
+    // Click outside viewer closes
+    lightbox.addEventListener("click", (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    // Keyboard nav
+    window.addEventListener("keydown", (e) => {
+      if (!lightbox.classList.contains("open")) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") step(-1);
+      if (e.key === "ArrowRight") step(1);
+    });
+
+    // Mobile swipe
+    let touchX = null;
+    viewerImg.addEventListener("touchstart", (e) => {
+      touchX = e.changedTouches?.[0]?.clientX ?? null;
+    }, { passive: true });
+
+    viewerImg.addEventListener("touchend", (e) => {
+      if (touchX == null) return;
+      const endX = e.changedTouches?.[0]?.clientX ?? touchX;
+      const dx = endX - touchX;
+      touchX = null;
+      if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    // Filter
+    filterEl.addEventListener("input", () => render());
+
+    function preloadAndValidate(files){
+      // Validate images exist and skip missing ones
+      // (keeps the gallery from breaking if you forget to update the list)
+      return Promise.all(files.map((filename) => new Promise((resolve) => {
+        const path = `${CONFIG.folder}/${filename}`;
+        const img = new Image();
+        img.onload = () => resolve({ ok: true, filename, path });
+        img.onerror = () => resolve({ ok: false, filename, path });
+        img.src = path;
+      })));
+    }
+
+    async function init(){
+      setStatus("Loading…");
+
+      if (!Array.isArray(IMAGE_FILES) || IMAGE_FILES.length === 0){
+        setStatus("No filenames provided.");
+        showToast("Add filenames to IMAGE_FILES");
+        render();
+        return;
+      }
+
+      // Load list + filter out missing files
+      const results = await preloadAndValidate(IMAGE_FILES);
+
+      const missing = results.filter(r => !r.ok).map(r => r.filename);
+      const found = results.filter(r => r.ok);
+
+      photos.length = 0;
+      for (const r of found){
+        photos.push({
+          filename: r.filename,
+          path: r.path,
+          label: toLabel(r.filename),
+        });
+      }
+
+      if (missing.length){
+        // non-fatal — just inform
+        console.warn("Missing images:", missing);
+        setStatus(`Ready (skipped ${missing.length} missing).`);
+      } else {
+        setStatus("Ready.");
+      }
+
+      if (!photos.length){
+        setStatus("No images found.");
+        showToast("No images found (check IMAGE_FILES)");
+      } else {
+        showToast(`Loaded ${photos.length} photo${photos.length === 1 ? "" : "s"}`);
+      }
+
+      render();
+    }
+
+    init();
+  </script>
+</body>
+</html>
